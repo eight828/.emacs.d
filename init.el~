@@ -1,0 +1,308 @@
+;;======================================================================
+;; Carbon-emacs の設定
+;;======================================================================
+
+(set-language-environment 'Japanese)
+(set-default-coding-systems 'utf-8)
+(set-buffer-file-coding-system 'utf-8)
+(set-file-name-coding-system 'utf-8)
+
+(set-keyboard-coding-system 'utf-8)
+(show-paren-mode 1)
+
+(if window-system
+    (set-keyboard-coding-system 'sjis-mac)
+   (progn
+     (set-keyboard-coding-system 'utf-8)
+     (set-terminal-coding-system 'utf-8)))
+
+(setq default-input-method "MacOSX")
+(prefer-coding-system 'utf-8-unix)
+
+;;*scratch*を初期画面にする
+(setq inhibit-startup-screen t)
+
+;;起動時のサイズ, 表示位置を指定
+(setq initial-frame-alist
+      (append (list
+	       '(top . 100)
+	       '(left . 800)
+	       '(width . 120)
+	       '(height . 80)
+	       ) 
+	      initial-frame-alist))
+	      
+;;======================================================================
+;; キー配置 + キーバインド
+;;======================================================================
+
+;;コマンドキーをmetaキーに
+(setq ns-command-modifier (quote meta))
+(setq ns-alternate-modifire (quote super))
+
+;;バッファのswitch
+(global-set-key "\M-p" 'previous-buffer)
+(global-set-key "\M-n" 'next-buffer)
+
+;; 行を指定して移動
+(global-set-key "\M-g" 'goto-line)
+
+;; "C-h" を "C-?" に
+;(keyboard-translate ?\C-h ?\C-?)
+
+;; UNDO
+;(global-set-key "\C-_" 'undo)
+
+;; "C-k"で行削除
+(setq kill-whole-line t)
+
+;; ホイールでスクロール
+(global-set-key [wheel-up] 'scroll-down-with-lines)
+(global-set-key [wheel-down] 'scroll-up-with-lines)
+
+;;======================================================================
+;; ffap
+;;======================================================================
+
+(ffap-bindings)
+;; 探すパスは ffap-c-path で設定する
+;; (setq ffap-c-path
+;;     '("/usr/include" "/usr/local/include"))
+;; 新規ファイルの場合には確認する
+(setq ffap-newfile-prompt t)
+;; ffap-kpathsea-expand-path で展開するパスの深さ
+(setq ffap-kpathsea-depth 5)
+
+(setq ff-other-file-alist
+      '(("\\.mm?$" (".h"))
+	("\\.cc$"  (".hh" ".h"))
+	("\\.hh$"  (".cc" ".C"))
+	
+	("\\.c$"   (".h"))
+	("\\.h$"   (".c" ".cc" ".C" ".CC" ".cxx" ".cpp" ".m" ".mm"))
+	
+	("\\.C$"   (".H"  ".hh" ".h"))
+	("\\.H$"   (".C"  ".CC"))
+	
+	("\\.CC$"  (".HH" ".H"  ".hh" ".h"))
+	("\\.HH$"  (".CC"))
+	
+	("\\.cxx$" (".hh" ".h"))
+	("\\.cpp$" (".hpp" ".hh" ".h"))
+	
+	("\\.hpp$" (".cpp" ".c"))))
+
+(add-hook 'objc-mode-hook
+	  (lambda ()
+	    (define-key c-mode-base-map (kbd "C-c o") 'ff-find-other-file)
+	    ))
+
+;;======================================================================
+;; Objective-C 関連付け
+;;======================================================================
+
+(add-to-list 'magic-mode-alist '("\\(.\\|\n\\)*\n@implementation" . objc-mode))
+(add-to-list 'magic-mode-alist '("\\(.\\|\n\\)*\n@interface" . objc-mode))
+(add-to-list 'magic-mode-alist '("\\(.\\|\n\\)*\n@protocol" . objc-mode))
+
+
+;;======================================================================
+;; YASnippet
+;;======================================================================
+
+;; load-path を通す
+;(let ((default-directory (expand-file-name "~/.emacs.d/lisp")))
+; (add-to-list 'load-path default-directory)
+; (if (fboundp 'normal-top-level-add-subdirs-to-load-path)
+;     (normal-top-level-add-subdirs-to-load-path)))
+
+;(require 'yasnippet)
+
+;; スニペットの位置を設定します。
+;(setq yas/root-directory '("~/.emacs.d/lisp/yasnippet-0.6.1c/snippets"
+;			   "~/.emacs.d/etc/snippets/xcode4snippets/src"))
+
+;(mapc 'yas/load-directory yas/root-directory)
+
+;; メニューは使わない
+;(setq yas/use-menu nil)
+
+;; 初期化
+;(yas/initialize)
+;(yas/load-directory yas/root-directory)
+
+;;======================================================================
+;; YaTeX 1.72
+;;   [La]TeX 入力モード
+;;   M-x yatex とするか、.tex で終わるファイルを読み込むと起動します
+;;======================================================================
+
+(autoload 'yatex-mode "yatex" "Yet Another LaTeX mode" t)
+
+;; YaTeX-mode
+(setq auto-mode-alist
+      (cons (cons "\\.tex$" 'yatex-mode) auto-mode-alist))
+(setq dvi2-command "xdvi"
+      tex-command "platex-euc"
+      dviprint-command-format "dvips %s | lpr"
+      YaTeX-kanji-code 3)
+
+;; YaHtml-mode
+(setq auto-mode-alist
+      (cons (cons "\\.html$" 'yahtml-mode) auto-mode-alist))
+(autoload 'yahtml-mode "yahtml" "Yet Another HTML mode" t)
+(setq yahtml-www-browser "mozilla")
+
+;; TeX source special のための設定
+(if (load "xdvi-search" t) ; 必須
+    (progn
+      (custom-set-variables
+       '(server-switch-hook (quote (raise-frame)))) ; 窓を上に
+      (custom-set-faces)
+      (add-hook 'yatex-mode-hook
+                '(lambda ()
+                   (define-key YaTeX-mode-map "\C-c\C-j" 'xdvi-jump-to-line)))
+      )
+)
+
+;;======================================================================
+;; 最終更新日の自動挿入
+;;======================================================================
+
+;; ファイルの先頭から 8 行以内に Time-stamp: <> または
+;; Time-stamp: " " と書いてあれば、セーブ時に自動的に日付が挿入されます
+(if (not (memq 'time-stamp write-file-hooks))
+    (setq write-file-hooks
+          (cons 'time-stamp write-file-hooks)))
+
+;;======================================================================
+;; スクリプト保存時に実行許可属性を設定
+;;======================================================================
+
+(defun make-file-executable ()
+  "Make the file of this buffer executable, when it is a script source."
+  (save-restriction
+    (widen)
+    (if (string= "#!" (buffer-substring-no-properties 1 (min 3 (point-max))))
+        (let ((name (buffer-file-name)))
+          (or (equal ?. (string-to-char (file-name-nondirectory name)))
+              (let ((mode (file-modes name)))
+                (set-file-modes name (logior mode (logand (/ mode 4) 73)))
+                (message (concat "Wrote " name " (+x)"))))))))
+(add-hook 'after-save-hook 'make-file-executable)
+
+;;======================================================================
+;; Shell-modeにおけるエスケープ/シーケンスの処理
+;;======================================================================
+
+(autoload 'ansi-color-for-comint-mode-on "ansi-color"
+          "Set `ansi-color-for-comint-mode' to t." t)
+(add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
+
+;;======================================================================
+;; 対応する括弧へ飛ぶ
+;; By an unknown contributor
+;;======================================================================
+
+;; 対応する括弧をハイライト
+(show-paren-mode 1)
+
+;; "M-%" で対応する括弧に移動
+(global-set-key "\M-%" 'match-paren)
+
+(defun match-paren (arg)
+  "Go to the matching paren if on a paren; otherwise insert %."
+  (interactive "p")
+  (cond ((looking-at "\\s\(") (forward-list 1) (backward-char 1))
+        ((looking-at "\\s\)") (forward-char 1) (backward-list 1))
+        (t (self-insert-command (or arg 1)))))
+
+;;======================================================================
+;; winner-mode で ウィンドウ構成を Undo/Redo
+;;======================================================================
+
+;; C-x 左カーソルでウィンドウ分割を元に戻す C-x 右カーソルでRedo
+(winner-mode)
+
+;;======================================================================
+;; Look and feel
+;;======================================================================
+
+;; 背景
+(if window-system 
+    (progn   (set-frame-parameter nil 'alpha 100)
+	     (set-background-color "black")
+	     (set-foreground-color "white")
+	     )
+  )
+
+;; visible-bell
+(setq visible-bell t)
+
+;;行番号表示
+;;(global-linum-mode t)
+
+;;バッテリー残量をemacsに表示
+;;(display-battery-mode 1)
+
+;; mark 領域に色付け
+(setq transient-mark-mode t)
+
+;; window分割時に画面外に出る文章を折り返す
+(setq truncate-partial-width-windows nil)
+
+;; Frame Title
+(setq frame-title-format "Emacs: %b")
+
+;;======================================================================
+;; フォントの設定
+;;======================================================================
+
+;;(set-default-font "Inconsolata-15")
+;;(set-face-font 'variable-pitch "Inconsolata-15")
+;;(set-fontset-font (frame-parameter nil 'font)
+;;                  'japanese-jisx0208
+;;                  '("TakaoExGothic" . "unicode-bmp")
+;;)
+
+
+;;======================================================================
+;; rubikitch
+;;======================================================================
+
+(setq load-path (append (list (expand-file-name "~/.emacs.d/") ) load-path))
+
+;; install-elisp.el
+(require 'install-elisp)
+(setq install-elisp-repository-directory "~/.emacs.d/")
+
+;; auto-async-byte-compile.el
+(require 'auto-async-byte-compile)
+;; 自動バイトコンパイルを無効にするファイル名の正規表現
+(setq auto-async-byte-compile-exclude-files-regexp "/junk/")
+(add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode)
+
+;;======================================================================
+;; その他
+;;======================================================================
+
+;; shellコマンドヒストリを補完
+;(load-library "tails-comint-history")
+
+;;info
+(setq user-full-name "Koki Teraoka")
+(setq user-mail-address "g.stranger828@gmail.com")
+
+(set-cursor-color "yellow")
+
+;;マウスホイールでスクロール
+(defun scroll-down-with-lines ()
+  "スクロールダウンを１行ごとに"
+  (interactive)
+  (scroll-down 2)
+)
+(defun scroll-up-with-lines ()
+  "スクロールアップを１行ごとに"
+  (interactive)
+  (scroll-up 2)
+)
